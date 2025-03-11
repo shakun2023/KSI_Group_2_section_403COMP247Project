@@ -8,6 +8,8 @@ Created on Sun Feb 23 02:59:10 2025
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.pipeline import Pipeline
+from sklearn.base import TransformerMixin
 
 
 #1. Data exploration: a complete review and analysis of the dataset including:
@@ -90,6 +92,43 @@ unique_times = data_Group2['time2'].unique()
 for time in sorted(unique_times):
     print(time)
 
+#Use pipelines class to streamline all the pre-processing transformations.
+
+ # Define custom transformer for preprocessing
+    class DataPreprocessor(TransformerMixin):
+        def fit(self, X, y=None):
+            return self
+        
+        def transform(self, X):
+            X = X.copy()
+            
+            # Drop columns with high missing values
+            X.drop(columns=columns_to_drop, axis=1, inplace=True, errors='ignore')
+            
+            # Drop columns with more than 5000 unique values
+            unique_counts = X.nunique()
+            cols_to_drop = unique_counts[unique_counts > 5000].index
+            X.drop(columns=cols_to_drop, axis=1, inplace=True, errors='ignore')
+            
+            # Convert date column to datetime format
+            if 'DATE' in X.columns:
+                X['DATE'] = pd.to_datetime(X['DATE'], errors='coerce')
+                X['time2'] = X['DATE'].dt.time
+            
+            return X
+
+    # Create pipeline
+    pipeline = Pipeline([
+        ('preprocessor', DataPreprocessor())
+    ])
+
+    # Apply pipeline
+    data_Group2_transformed = pipeline.fit_transform(data_Group2)
+
+    print("\nTransformed Data Shape:\n")
+    print(data_Group2_transformed.shape)
+    
+
 #######################
 """
 Both the police department and the “general public” would make use of a software product that can give them an idea about the likelihood of fatal collisions that involve loss of life. For the police department it would assist them in taking better measures of security and better planning for road conditions around certain neighborhoods. For the public individuals, it would help them assess the need for additional precautions at certain times and weather conditions and neighborhoods
@@ -137,6 +176,18 @@ Other Columns to Drop:
     OBJECTID
     INDEX
     ACCNUM
+
+
+######################
+Keep the following columns because they help to analyze respective collisions and their impact on accident severity.
+CYCCOND
+PEDESTRIAN
+CYCLIST
+Drop AUTOMOBILE (Driver Involved in Collission) because almost all accidents involve a driver; this feature is likely redundant. 
+Keep MOTORCYCLE because it Important for analyzing patterns in motorcycle collissions and informing safety policies.
+Keep TRUCK as it's useful for identifying accident hotspots involving large vehicles.
+Keep TRSN_CITY_VEH because it's useful for identifying accident hotspots involving large vehicles.
+Keep TRSN_CITY_VEH because Helps in analyzing whether collisions involving passengers tend to be more severe.
     
 ######################
 NOTE: check for columns with too many unique variables 
